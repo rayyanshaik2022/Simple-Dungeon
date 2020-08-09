@@ -86,8 +86,9 @@ class Network:
         '''
 
         try:
-            self.client.send(pickle.dumps(data))
-            r_data = pickle.loads(self.client.recv(2048*4))
+            packet = {"action" : "try", "data" : data}
+            self.client.send(pickle.dumps(packet))
+            r_data = pickle.loads(self.client.recv(2048*2))
                 
             return r_data
         except socket.error as e:

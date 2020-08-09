@@ -1,0 +1,4 @@
+TODO:
+
+- Lobby start countdown
+- Game start failure if 1 person

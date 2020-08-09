@@ -161,7 +161,7 @@ class Client:
 
         if self.mode_ticks['connecting'] >= 100:
             if self.net.made_connection == None:
-                print(self.net.connect(), " to ", self.net.addr)
+                self.id_ = self.net.connect()
 
             if self.net.made_connection:
                 self.net.push({"name" : self.name})
@@ -203,12 +203,15 @@ class Client:
                 },
                 'images' : {
                     'Spirit-Boxer' : [],
-                    'Samurai-Merchant' : []
+                    'Samurai-Merchant' : [],
+                    'Spirit-Boxer-Grey' : [],
+                    'Samurai-Merchant-Grey' : []
                 },
                 'boxes' : [
                 ],
                 'counters' : {
-                    'img-tick' : 0
+                    'img-tick' : 0,
+                    'character-click' : 0
                 }
             }
 
@@ -227,13 +230,33 @@ class Client:
             for i in range(4):
                 spirit_boxer_images.append((i*14 + i*2,0,14,19))
             self.lobby_interactables['images']['Spirit-Boxer']=spritesheet('./Assets/Spirit-Boxer-Idle.png').images_at(spirit_boxer_images, (0,0,0))
+            self.lobby_interactables['images']['Spirit-Boxer'] = [pygame.transform.scale(x, (x.get_width()*8, x.get_height()*8)) for x in \
+                self.lobby_interactables['images']['Spirit-Boxer']] 
+
+            # Get Spirit Boxer (Grey) images
+            spirit_boxer_images = []
+            for i in range(4):
+                spirit_boxer_images.append((i*14 + i*2,0,14,19))
+            self.lobby_interactables['images']['Spirit-Boxer-Grey']=spritesheet('./Assets/Spirit-Boxer-Idle-Grey.png').images_at(spirit_boxer_images, (0,0,0))
+            self.lobby_interactables['images']['Spirit-Boxer-Grey'] = [pygame.transform.scale(x, (x.get_width()*8, x.get_height()*8)) for x in \
+                self.lobby_interactables['images']['Spirit-Boxer-Grey']] 
 
             # Get Samurai Images
             samurai_images = []
             for i in range(4):
                 samurai_images.append((i*38 + i*2,0,38,26))
+            self.lobby_interactables['images']['Samurai-Merchant-Grey']=spritesheet('./Assets/Samurai-Merchant-Idle-Grey.png').images_at(samurai_images, (255,255,255,255))
+            self.lobby_interactables['images']['Samurai-Merchant-Grey'] = [pygame.transform.scale(x, (x.get_width()*8, x.get_height()*8)) for x in \
+                self.lobby_interactables['images']['Samurai-Merchant-Grey']]
+
+            # Get Samurai (Grey) Images
+            samurai_images = []
+            for i in range(4):
+                samurai_images.append((i*38 + i*2,0,38,26))
             self.lobby_interactables['images']['Samurai-Merchant']=spritesheet('./Assets/Samurai-Merchant-Idle.png').images_at(samurai_images, (255,255,255,255))
-        
+            self.lobby_interactables['images']['Samurai-Merchant'] = [pygame.transform.scale(x, (x.get_width()*8, x.get_height()*8)) for x in \
+                self.lobby_interactables['images']['Samurai-Merchant']]
+
         if self.net.request("state") != 0: # 0 is the state for lobby
             self.screen.fill(COLORS['background'])
             wait_text = self.lobby_interactables['fonts']['title'].render("Session in progress...",True,(240, 242, 245))
@@ -241,7 +264,7 @@ class Client:
         else:
             self.screen.fill(COLORS['background'])
             all_players = self.net.request("player_names")
-            
+            self.lobby_interactables['counters']['character-click'] += 1
             
             # Draw cards and names of connected players (in order)
             for i, box in enumerate(self.lobby_interactables['boxes']):
@@ -252,16 +275,43 @@ class Client:
                     y = int(box.topleft[1] + (box.height - name_text.get_size()[1])/2)
                     self.screen.blit(name_text, (x,y))
             
+
+            # Draw "updating" characters
             if self.mode_ticks['lobby'] % 30 == 0:
                 self.lobby_interactables['counters']['img-tick'] += 1
-            
-            samurai_img = self.lobby_interactables['images']['Samurai-Merchant'][self.lobby_interactables['counters']['img-tick']%4]
-            samurai_img = pygame.transform.scale(samurai_img, (samurai_img.get_width()*8, samurai_img.get_height()*8))
-            self.screen.blit(samurai_img, (0,0))
 
-            spirit_img = self.lobby_interactables['images']['Spirit-Boxer'][self.lobby_interactables['counters']['img-tick']%4]
-            spirit_img = pygame.transform.scale(spirit_img, (spirit_img.get_width()*8, spirit_img.get_height()*8))
+            selected_characters = self.net.request("selected_characters")
+            
+            if selected_characters['Samurai-Merchant'] in [None, str(self.id_)]:
+                samurai_img = self.lobby_interactables['images']['Samurai-Merchant'][self.lobby_interactables['counters']['img-tick']%4]
+            else:
+                 samurai_img = self.lobby_interactables['images']['Samurai-Merchant-Grey'][self.lobby_interactables['counters']['img-tick']%4]
+            self.screen.blit(samurai_img, (0,0))
+            samurai_hitbox = pygame.Rect((0,0),samurai_img.get_size())
+            if selected_characters['Samurai-Merchant'] == str(self.id_):
+                pygame.draw.rect(self.screen, (50, 86, 168),samurai_hitbox,2)
+
+            if selected_characters['Spirit-Boxer'] in [None, str(self.id_)]:
+                spirit_img = self.lobby_interactables['images']['Spirit-Boxer'][self.lobby_interactables['counters']['img-tick']%4]
+            else:
+                spirit_img = self.lobby_interactables['images']['Spirit-Boxer-Grey'][self.lobby_interactables['counters']['img-tick']%4]
             self.screen.blit(spirit_img, (400,50))
+            spirit_hitbox = pygame.Rect((400,50),spirit_img.get_size())
+            if selected_characters['Spirit-Boxer'] == str(self.id_):
+                pygame.draw.rect(self.screen, (50, 86, 168),spirit_hitbox,2)
+
+            hitboxes = [samurai_hitbox, spirit_hitbox]
+            for i, char in enumerate(hitboxes):
+                if char.collidepoint(pygame.mouse.get_pos()):
+                    if pygame.mouse.get_pressed()[0]:
+                        if i == 0:
+                            clicked = "Samurai-Merchant"
+                        if i == 1:
+                            clicked = "Spirit-Boxer"
+                        if self.lobby_interactables['counters']['character-click'] >= 10:
+                            self.net.send({"selected-character":clicked})
+                            self.lobby_interactables['counters']['character-click'] = 0
+                        
     
         pygame.display.flip()
         self.mode_ticks['lobby'] += 1

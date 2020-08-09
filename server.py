@@ -26,6 +26,13 @@ print("Waiting for a connection, Server Started")
 
 game = GameState()
 
+def disconect(id_):
+
+    del game.lobby['players_connected'][str(id_)]
+
+    for character in game.lobby['selected_characters']:
+        if game.lobby['selected_characters'][character] == str(id_):
+            game.lobby['selected_characters'][character] = None
 
 def threaded_client(conn, addr):
     '''
@@ -33,9 +40,9 @@ def threaded_client(conn, addr):
     It receives input data and sends the current grid state
     '''
 
-    conn.send(pickle.dumps("Connected"))
-    print("sent connected")
     id_ = addr[1]
+    conn.send(pickle.dumps(id_))
+    print("sent id")
     while True:
         try:
             data = pickle.loads(conn.recv(2048))
@@ -59,12 +66,27 @@ def threaded_client(conn, addr):
                     reply = game.c_state
                 elif req == "player_names":
                     reply = [[key, game.lobby['players_connected'][key]['name']] for key in game.lobby['players_connected']]
+                elif req == "selected_characters":
+                    reply = game.lobby["selected_characters"]
+            elif data['action'] == 'try':
+                for key in data['data']:
+                    if key == "selected-character":
+                        if game.lobby['selected_characters'][data['data'][key]] == None:
+                            for character in game.lobby['selected_characters']:
+                                if game.lobby['selected_characters'][character] == str(id_):
+                                    game.lobby['selected_characters'][character] = None
+                            game.lobby['selected_characters'][data['data'][key]] = str(id_)
+                        elif game.lobby['selected_characters'][data['data'][key]] == str(id_):
+                            game.lobby['selected_characters'][data['data'][key]] = None
+                        else:
+                            pass
+            
             conn.sendall(pickle.dumps(reply))
         except:
             break
 
     print("Lost connection")
-    del game.lobby['players_connected'][str(id_)]
+    disconect(id_)
     print("Removed",id_,"from the lobby")
     conn.close()
 
