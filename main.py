@@ -1,14 +1,17 @@
-import pygame
-import pygame.gfxdraw
 import json
-
-from Interactables.button import Button
-from Interactables.text_box import TextBox
-from settings import *
-from Dynamic.crawler import Crawler
 import random
 import time
+
+import pygame
+import pygame.gfxdraw
+
+from Dynamic.crawler import Crawler
+from Dynamic.spritesheet import spritesheet
+from Interactables.button import Button
+from Interactables.text_box import TextBox
 from network import Network
+from settings import *
+
 
 class Client:
     def __init__(self):
@@ -18,7 +21,7 @@ class Client:
         self.clock = pygame.time.Clock()
         self.fonts = {}
         self.keys_pressed = []
-        self.mode_ticks = {'menu':0, 'connecting':0}
+        self.mode_ticks = {'menu':0, 'connecting':0, 'lobby':0}
 
     def setup(self):
         
@@ -51,6 +54,8 @@ class Client:
             self.menu_screen()
         elif self.state == "Connecting-Server":
             self.connecting_screen()
+        elif self.state == "Game-Lobby":
+            self.lobby_screen()
 
     def events(self):
         # catch all events here
@@ -186,6 +191,81 @@ class Client:
 
         pygame.display.flip()
         self.mode_ticks['connecting'] += 1
+    
+    def lobby_screen(self):
+
+        if self.mode_ticks['lobby'] == 0:
+
+            self.lobby_interactables = {
+                'fonts' : {
+                    'title' : pygame.font.Font(self.fonts['Nasalization-Regular'], 100),
+                    'names' : pygame.font.Font(self.fonts['Nasalization-Regular'], 40)
+                },
+                'images' : {
+                    'Spirit-Boxer' : [],
+                    'Samurai-Merchant' : []
+                },
+                'boxes' : [
+                ],
+                'counters' : {
+                    'img-tick' : 0
+                }
+            }
+
+            # Set name boxes
+            box1 = pygame.Rect(0,0,300,70)
+            box1.center = (int(WIDTH/2), 600)
+            box2 = box1.copy(); box2.centerx -= box2.width + 50
+            box3 = box1.copy(); box3.centerx += box3.width + 50
+            box4 = box1.copy(); box4.centery += 120
+            box5 = box4.copy(); box5.centerx -= box5.width + 50
+            box6 = box4.copy(); box6.centerx += box6.width + 50
+            self.lobby_interactables['boxes'] = [box2,box1,box3,box5,box4,box6]
+
+            # Get Spirit Boxer images
+            spirit_boxer_images = []
+            for i in range(4):
+                spirit_boxer_images.append((i*14 + i*2,0,14,19))
+            self.lobby_interactables['images']['Spirit-Boxer']=spritesheet('./Assets/Spirit-Boxer-Idle.png').images_at(spirit_boxer_images, (0,0,0))
+
+            # Get Samurai Images
+            samurai_images = []
+            for i in range(4):
+                samurai_images.append((i*38 + i*2,0,38,26))
+            self.lobby_interactables['images']['Samurai-Merchant']=spritesheet('./Assets/Samurai-Merchant-Idle.png').images_at(samurai_images, (255,255,255,255))
+        
+        if self.net.request("state") != 0: # 0 is the state for lobby
+            self.screen.fill(COLORS['background'])
+            wait_text = self.lobby_interactables['fonts']['title'].render("Session in progress...",True,(240, 242, 245))
+            self.screen.blit(wait_text, (int( 0.5*WIDTH - 0.5*wait_text.get_size()[0]),300))
+        else:
+            self.screen.fill(COLORS['background'])
+            all_players = self.net.request("player_names")
+            
+            
+            # Draw cards and names of connected players (in order)
+            for i, box in enumerate(self.lobby_interactables['boxes']):
+                pygame.draw.rect(self.screen, (27, 29, 33), box)
+                if i < len(all_players):
+                    name_text = self.lobby_interactables['fonts']['names'].render(all_players[i][1],True,(240, 242, 245))
+                    x = int(box.topleft[0] + (box.width - name_text.get_size()[0])/2)
+                    y = int(box.topleft[1] + (box.height - name_text.get_size()[1])/2)
+                    self.screen.blit(name_text, (x,y))
+            
+            if self.mode_ticks['lobby'] % 30 == 0:
+                self.lobby_interactables['counters']['img-tick'] += 1
+            
+            samurai_img = self.lobby_interactables['images']['Samurai-Merchant'][self.lobby_interactables['counters']['img-tick']%4]
+            samurai_img = pygame.transform.scale(samurai_img, (samurai_img.get_width()*8, samurai_img.get_height()*8))
+            self.screen.blit(samurai_img, (0,0))
+
+            spirit_img = self.lobby_interactables['images']['Spirit-Boxer'][self.lobby_interactables['counters']['img-tick']%4]
+            spirit_img = pygame.transform.scale(spirit_img, (spirit_img.get_width()*8, spirit_img.get_height()*8))
+            self.screen.blit(spirit_img, (400,50))
+    
+        pygame.display.flip()
+        self.mode_ticks['lobby'] += 1
+
 # create the game object
 g = Client()
 g.setup()

@@ -53,11 +53,19 @@ def threaded_client(conn, addr):
                 for key in data['data']:
                     game.lobby['players_connected'][str(id_)][key] = data['data'][key]
                     print(f"{id_}'s {key} set to {data['data'][key]}")
+            elif data['action'] == 'request':
+                req = data['data']
+                if req == "state":
+                    reply = game.c_state
+                elif req == "player_names":
+                    reply = [[key, game.lobby['players_connected'][key]['name']] for key in game.lobby['players_connected']]
             conn.sendall(pickle.dumps(reply))
         except:
             break
 
     print("Lost connection")
+    del game.lobby['players_connected'][str(id_)]
+    print("Removed",id_,"from the lobby")
     conn.close()
 
 def update_grid():
