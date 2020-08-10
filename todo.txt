@@ -2,3 +2,5 @@ TODO:
 
 - Lobby start countdown
 - Game start failure if 1 person
+- Kick out players that have not selected character
+- Choose random player to be "it"

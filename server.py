@@ -43,6 +43,15 @@ def threaded_client(conn, addr):
     id_ = addr[1]
     conn.send(pickle.dumps(id_))
     print("sent id")
+
+    # If over 6 players connected
+    if len(game.lobby['players_connected']) > 6:
+        print("Lost connection")
+        disconect(id_)
+        print("Removed",id_,"from the lobby")
+        conn.close()
+        return
+
     while True:
         try:
             data = pickle.loads(conn.recv(2048))
@@ -68,6 +77,8 @@ def threaded_client(conn, addr):
                     reply = [[key, game.lobby['players_connected'][key]['name']] for key in game.lobby['players_connected']]
                 elif req == "selected_characters":
                     reply = game.lobby["selected_characters"]
+                elif req == "lobby_countdown":
+                    reply = game.lobby['start_countdown']
             elif data['action'] == 'try':
                 for key in data['data']:
                     if key == "selected-character":
@@ -101,7 +112,7 @@ def update_grid():
     while True:
         game.clock.tick(UPS)
 
-        pass # Do nothing for now
+        game.update()
 
 start_new_thread(update_grid, ())
 while True:

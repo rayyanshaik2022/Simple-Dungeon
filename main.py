@@ -56,6 +56,8 @@ class Client:
             self.connecting_screen()
         elif self.state == "Game-Lobby":
             self.lobby_screen()
+        elif self.state == "In-Game":
+            pass
 
     def events(self):
         # catch all events here
@@ -199,7 +201,8 @@ class Client:
             self.lobby_interactables = {
                 'fonts' : {
                     'title' : pygame.font.Font(self.fonts['Nasalization-Regular'], 100),
-                    'names' : pygame.font.Font(self.fonts['Nasalization-Regular'], 40)
+                    'names' : pygame.font.Font(self.fonts['Nasalization-Regular'], 40),
+                    'status' : pygame.font.Font(self.fonts['Nasalization-Regular'], 50)
                 },
                 'images' : {
                     'Spirit-Boxer' : [],
@@ -257,13 +260,20 @@ class Client:
             self.lobby_interactables['images']['Samurai-Merchant'] = [pygame.transform.scale(x, (x.get_width()*8, x.get_height()*8)) for x in \
                 self.lobby_interactables['images']['Samurai-Merchant']]
 
-        if self.net.request("state") != 0: # 0 is the state for lobby
+        all_players = self.net.request("player_names")
+        game_state = self.net.request("state")
+        countdown = self.net.request("lobby_countdown")
+        selected_characters = self.net.request("selected_characters")
+
+        if game_state != 0 and (str(self.id_) not in [selected_characters[x] for x in selected_characters]): # 0 is the state for lobby
             self.screen.fill(COLORS['background'])
             wait_text = self.lobby_interactables['fonts']['title'].render("Session in progress...",True,(240, 242, 245))
             self.screen.blit(wait_text, (int( 0.5*WIDTH - 0.5*wait_text.get_size()[0]),300))
+        elif game_state != 0 and (str(self.id_) in [x[0] for x in all_players]):
+            # Do something here indicating a change from the lobby
+            self.state = "In-Game"
         else:
             self.screen.fill(COLORS['background'])
-            all_players = self.net.request("player_names")
             self.lobby_interactables['counters']['character-click'] += 1
             
             # Draw cards and names of connected players (in order)
@@ -274,20 +284,28 @@ class Client:
                     x = int(box.topleft[0] + (box.width - name_text.get_size()[0])/2)
                     y = int(box.topleft[1] + (box.height - name_text.get_size()[1])/2)
                     self.screen.blit(name_text, (x,y))
+
+            # Draw game starting status
+            if int(countdown) > 60:
+                status_txt = "Waiting for more players..."
+            elif int(countdown) == 1:
+                status_txt = "Game starting in 1 second"
+            else:
+                status_txt = "Game starting in " + str(int(countdown)) + " seconds"
+            status_text = self.lobby_interactables['fonts']['status'].render(status_txt,True,(240, 242, 245))
+            self.screen.blit(status_text, (int(WIDTH/2)-int(status_text.get_width()/2),475))
             
 
             # Draw "updating" characters
             if self.mode_ticks['lobby'] % 30 == 0:
                 self.lobby_interactables['counters']['img-tick'] += 1
-
-            selected_characters = self.net.request("selected_characters")
             
             if selected_characters['Samurai-Merchant'] in [None, str(self.id_)]:
                 samurai_img = self.lobby_interactables['images']['Samurai-Merchant'][self.lobby_interactables['counters']['img-tick']%4]
             else:
                  samurai_img = self.lobby_interactables['images']['Samurai-Merchant-Grey'][self.lobby_interactables['counters']['img-tick']%4]
-            self.screen.blit(samurai_img, (0,0))
-            samurai_hitbox = pygame.Rect((0,0),samurai_img.get_size())
+            self.screen.blit(samurai_img, (300,20))
+            samurai_hitbox = pygame.Rect((300,20),samurai_img.get_size())
             if selected_characters['Samurai-Merchant'] == str(self.id_):
                 pygame.draw.rect(self.screen, (50, 86, 168),samurai_hitbox,2)
 
@@ -295,8 +313,8 @@ class Client:
                 spirit_img = self.lobby_interactables['images']['Spirit-Boxer'][self.lobby_interactables['counters']['img-tick']%4]
             else:
                 spirit_img = self.lobby_interactables['images']['Spirit-Boxer-Grey'][self.lobby_interactables['counters']['img-tick']%4]
-            self.screen.blit(spirit_img, (400,50))
-            spirit_hitbox = pygame.Rect((400,50),spirit_img.get_size())
+            self.screen.blit(spirit_img, (700,50))
+            spirit_hitbox = pygame.Rect((700,50),spirit_img.get_size())
             if selected_characters['Spirit-Boxer'] == str(self.id_):
                 pygame.draw.rect(self.screen, (50, 86, 168),spirit_hitbox,2)
 
