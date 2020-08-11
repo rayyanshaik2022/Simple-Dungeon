@@ -11,6 +11,7 @@ from Interactables.button import Button
 from Interactables.text_box import TextBox
 from network import Network
 from settings import *
+import math
 
 
 class Client:
@@ -139,7 +140,6 @@ class Client:
                         text_file.write(self.menu_interactables['text-boxes']['name'].text)
                         self.name = self.menu_interactables['text-boxes']['name'].text
                     del self.menu_interactables
-
 
         pygame.display.flip()
         self.mode_ticks['menu'] += 1
@@ -339,19 +339,73 @@ class Client:
 
         if self.mode_ticks['game'] == 0:
             
+            img_locs = []
+            for i in range(5):
+                for j in range(7):
+                    img_locs.append((j*8,i*8,8, 8))
+
             self.game_state = {
                 'map' : None,
                 'player' : None
+            }
+            self.tile_set = {
+                'rot0' : spritesheet('./Assets/tile_set_0angle.png').images_at(img_locs, (0,0,0)),
+                'rot90' : spritesheet('./Assets/tile_set_90angle.png').images_at(img_locs, (0,0,0)),
+                'rot180' : spritesheet('./Assets/tile_set_180angle.png').images_at(img_locs, (0,0,0)),
+                'rot270' : spritesheet('./Assets/tile_set_270angle.png').images_at(img_locs, (0,0,0)),
             }
             # TODO:
             # Load images
 
             # Load map
             self.game_state['map'] = self.net.request("map")
-            # Get current player
             self.game_state['player'] = self.net.request("whoami")
             
-        self.screen.fill(COLORS['background'])
+        self.screen.fill((20, 22, 26))
+
+        # Get player position
+        pos = self.net.request("position")
+        center = [int(pos[0]), int(pos[1])] # The center of the screen will have a synthetic value of 'pos'
+        for y in range(len(self.game_state['map'][0])):
+            for x in range(len(self.game_state['map'][0][0])):
+                val = int(self.game_state['map'][0][y][x])
+                val2 = int(self.game_state['map'][1][y][x])
+
+                if val < 100:
+                    image_pool = self.tile_set['rot0']
+                elif val < 200:
+                    image_pool = self.tile_set['rot90']
+                    val -= 100
+                elif val < 300:
+                    image_pool = self.tile_set['rot180']
+                    val -= 200
+                elif val < 400:
+                    image_pool = self.tile_set['rot270']
+                    val -= 300
+
+                if val2 < 100:
+                    image_pool2 = self.tile_set['rot0']
+                elif val2 < 200:
+                    image_pool2 = self.tile_set['rot90']
+                    val2 -= 100
+                elif val2 < 300:
+                    image_pool2 = self.tile_set['rot180']
+                    val2 -= 200
+                elif val2 < 400:
+                    image_pool2 = self.tile_set['rot270']
+                    val2 -= 300
+                
+                if val != -1:
+                    img = pygame.transform.scale(image_pool[val], [TILE_SIZE,TILE_SIZE])
+                    self.screen.blit(img, (x*TILE_SIZE - center[0], y*TILE_SIZE -center[1]))
+                if val2 != -1:
+                    img = pygame.transform.scale(image_pool2[val2], [TILE_SIZE,TILE_SIZE])
+                    self.screen.blit(img, (x*TILE_SIZE - center[0], y*TILE_SIZE -center[1]))
+
+        # Update player angle
+        mx, my = pygame.mouse.get_pos()
+        angle = round(math.atan2(my-(HEIGHT/2), mx-(WIDTH/2)),2)
+        self.net.push({'angle' : [self.game_state['player'],angle]})
 
         pygame.display.flip()
         self.mode_ticks['game'] += 1

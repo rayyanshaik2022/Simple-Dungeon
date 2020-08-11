@@ -56,9 +56,14 @@ class Network:
     def request(self, data):
 
         packet = {"action" : "request", "data" : data}
+        reply_size = 4
+
+        if data in ["map", "whoami"]:
+            reply_size = 8
+
         try:
             self.client.send(pickle.dumps(packet))
-            r_data = pickle.loads(self.client.recv(2048*4))
+            r_data = pickle.loads(self.client.recv(2048*reply_size))
                 
             return r_data
         except socket.error as e:
@@ -72,7 +77,7 @@ class Network:
             self.client.send(pickle.dumps(packet))
             # Set to receive low # of bits as its not excepting
             # to receive any important data
-            r_data = pickle.loads(self.client.recv(2048*2))
+            r_data = pickle.loads(self.client.recv(2048*1))
                 
             return r_data
         except socket.error as e:

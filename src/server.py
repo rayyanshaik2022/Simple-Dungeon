@@ -59,7 +59,7 @@ def threaded_client(conn, addr):
     while True:
         try:
             data = pickle.loads(conn.recv(2048))
-            reply = {"message" : "reply"}
+            reply = 0
 
             if not data:
                 print("Disconnected")
@@ -71,8 +71,12 @@ def threaded_client(conn, addr):
             
             if data['action'] == 'push':
                 for key in data['data']:
-                    game.lobby['players_connected'][str(id_)][key] = data['data'][key]
-                    print(f"{id_}'s {key} set to {data['data'][key]}")
+                    if key == 'angle':
+                        character = data['data'][key][0]
+                        game.game_information['players'][character]['angle'] = data['data'][key][1]
+                    else:
+                        game.lobby['players_connected'][str(id_)][key] = data['data'][key]
+                        print(f"{id_}'s {key} set to {data['data'][key]}")
             elif data['action'] == 'request':
                 req = data['data']
                 if req == "state":
@@ -86,10 +90,17 @@ def threaded_client(conn, addr):
                 elif req == "map":
                     reply = game.map
                 elif req == "whoami":
-                    for key in self.lobby['selected_characters']:
-                        if self.lobby['selected_characters'][key] == str(id_):
+                    for key in game.lobby['selected_characters']:
+                        if game.lobby['selected_characters'][key] == str(id_):
                             reply = key
-                    reply = None
+                elif req == "position":
+                    if game.game_information != None:
+                        for key in game.game_information['players']:
+                            if game.game_information['players'][key]['id_'] == str(id_):
+                                reply = game.game_information['players'][key]['pos']
+                    else:
+                        reply = None
+
             elif data['action'] == 'try':
                 for key in data['data']:
                     if key == "selected-character":

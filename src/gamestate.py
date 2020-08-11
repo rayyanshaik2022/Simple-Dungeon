@@ -1,5 +1,7 @@
 import pygame
 import numpy as np
+import random
+import math
 
 class GameState:
 
@@ -20,6 +22,18 @@ class GameState:
 
         self.game_information = None
         self.map = None
+    
+    def prune_map(self, m):
+        layered_map = []
+        for layer in m:
+            for row in layer:
+                if all(i == row[0] and i == -1 for i in row):
+                    layer.append(row)
+                    layer = layer[1:]
+
+            layered_map.append(layer)
+        self.map = layered_map
+
 
     def update(self):
 
@@ -30,7 +44,7 @@ class GameState:
                 if self.lobby['selected_characters'][char] != None:
                     c += 1
             
-            if c >= 2:
+            if c >= 1: # Number of people required to start game
                 self.lobby['start_countdown'] -= (1/60)
             else:
                 self.lobby['start_countdown'] = 5 # Reset timer (65)
@@ -43,4 +57,26 @@ class GameState:
             
             # Initialization of stuff here
             if self.game_information == None:
-                pass
+
+                # Spawn positions are situational depending on map (set up for map_tutorial)
+                self.game_information = {
+                    "players" : {
+                        'Spirit-Boxer' : {
+                            'id_' : self.lobby['selected_characters']['Spirit-Boxer'],
+                            'angle' : 0,
+                            'pos' : [7*32, 13*32],
+                            'speed' : 2
+                        },
+                        'Samurai-Merchant' : {
+                            'id_' : self.lobby['selected_characters']['Samurai-Merchant'],
+                            'angle' : 0,
+                            'pos' : [7*32, 13*32],
+                            'speed' : 2
+                        }
+                    }
+                }
+
+            for char in self.game_information['players']:
+                character = self.game_information['players'][char]
+                character['pos'][0] += math.cos(character['angle']) * character['speed']
+                character['pos'][1] += math.sin(character['angle']) * character['speed']
