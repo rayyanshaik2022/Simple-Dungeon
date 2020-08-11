@@ -1,4 +1,5 @@
 import pygame
+import numpy as np
 
 class GameState:
 
@@ -18,7 +19,8 @@ class GameState:
         }
 
         self.game_information = None
-    
+        self.map = None
+
     def update(self):
 
         if self.c_state == 0:

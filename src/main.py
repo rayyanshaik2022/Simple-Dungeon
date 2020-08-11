@@ -21,7 +21,7 @@ class Client:
         self.clock = pygame.time.Clock()
         self.fonts = {}
         self.keys_pressed = []
-        self.mode_ticks = {'menu':0, 'connecting':0, 'lobby':0}
+        self.mode_ticks = {'menu':0, 'connecting':0, 'lobby':0,'game':0}
 
     def setup(self):
         
@@ -57,7 +57,7 @@ class Client:
         elif self.state == "Game-Lobby":
             self.lobby_screen()
         elif self.state == "In-Game":
-            pass
+            self.game_screen()
 
     def events(self):
         # catch all events here
@@ -272,6 +272,7 @@ class Client:
         elif game_state != 0 and (str(self.id_) in [x[0] for x in all_players]):
             # Do something here indicating a change from the lobby
             self.state = "In-Game"
+            del self.lobby_interactables
         else:
             self.screen.fill(COLORS['background'])
             self.lobby_interactables['counters']['character-click'] += 1
@@ -334,6 +335,26 @@ class Client:
         pygame.display.flip()
         self.mode_ticks['lobby'] += 1
 
+    def game_screen(self):
+
+        if self.mode_ticks['game'] == 0:
+            
+            self.game_state = {
+                'map' : None,
+                'player' : None
+            }
+            # TODO:
+            # Load images
+
+            # Load map
+            self.game_state['map'] = self.net.request("map")
+            # Get current player
+            self.game_state['player'] = self.net.request("whoami")
+            
+        self.screen.fill(COLORS['background'])
+
+        pygame.display.flip()
+        self.mode_ticks['game'] += 1
 # create the game object
 g = Client()
 g.setup()

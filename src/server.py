@@ -1,6 +1,7 @@
 import pickle
 import socket
 import sys
+import numpy as np
 
 from gamestate import GameState
 
@@ -25,6 +26,9 @@ print("Waiting for a connection, Server Started")
 
 
 game = GameState()
+f = r"C:\Users\101pa\Desktop\Advanced Python\Infection-Multiplayer\src\maplayer1.txt"
+f2 = r"C:\Users\101pa\Desktop\Advanced Python\Infection-Multiplayer\src\maplayer2.txt"
+game.map = [np.loadtxt(f).tolist(), np.loadtxt(f2).tolist()]
 
 def disconect(id_):
 
@@ -79,6 +83,13 @@ def threaded_client(conn, addr):
                     reply = game.lobby["selected_characters"]
                 elif req == "lobby_countdown":
                     reply = game.lobby['start_countdown']
+                elif req == "map":
+                    reply = game.map
+                elif req == "whoami":
+                    for key in self.lobby['selected_characters']:
+                        if self.lobby['selected_characters'][key] == str(id_):
+                            reply = key
+                    reply = None
             elif data['action'] == 'try':
                 for key in data['data']:
                     if key == "selected-character":
