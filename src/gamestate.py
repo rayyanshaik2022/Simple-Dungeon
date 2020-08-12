@@ -37,6 +37,11 @@ class GameState:
 
     def update(self):
 
+        if self.c_state == -1:
+            print("RESETTING SERVER")
+            self.game_information = None
+            self.c_state = 0
+
         if self.c_state == 0:
             
             c = 0
@@ -44,7 +49,7 @@ class GameState:
                 if self.lobby['selected_characters'][char] != None:
                     c += 1
             
-            if c >= 1: # Number of people required to start game
+            if c >= 2: # Number of people required to start game
                 self.lobby['start_countdown'] -= (1/60)
             else:
                 self.lobby['start_countdown'] = 5 # Reset timer (65)
@@ -64,13 +69,13 @@ class GameState:
                         'Spirit-Boxer' : {
                             'id_' : self.lobby['selected_characters']['Spirit-Boxer'],
                             'angle' : 0,
-                            'pos' : [7*32, 13*32],
+                            'pos' : [3*128, 10*128],
                             'speed' : 2
                         },
                         'Samurai-Merchant' : {
                             'id_' : self.lobby['selected_characters']['Samurai-Merchant'],
                             'angle' : 0,
-                            'pos' : [7*32, 13*32],
+                            'pos' : [3*128, 10*128],
                             'speed' : 2
                         }
                     }
@@ -80,3 +85,6 @@ class GameState:
                 character = self.game_information['players'][char]
                 character['pos'][0] += math.cos(character['angle']) * character['speed']
                 character['pos'][1] += math.sin(character['angle']) * character['speed']
+        
+        if self.lobby['players_connected'] == {} and self.c_state not in [-1,0]:
+            self.c_state = -1

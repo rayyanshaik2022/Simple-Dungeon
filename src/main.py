@@ -346,25 +346,52 @@ class Client:
 
             self.game_state = {
                 'map' : None,
-                'player' : None
+                'player' : None,
+                'player-running-tick' : 0,
+                'players' : None
             }
             self.tile_set = {
                 'rot0' : spritesheet('./Assets/tile_set_0angle.png').images_at(img_locs, (0,0,0)),
                 'rot90' : spritesheet('./Assets/tile_set_90angle.png').images_at(img_locs, (0,0,0)),
                 'rot180' : spritesheet('./Assets/tile_set_180angle.png').images_at(img_locs, (0,0,0)),
                 'rot270' : spritesheet('./Assets/tile_set_270angle.png').images_at(img_locs, (0,0,0)),
+                'characters' : {
+                    'Spirit-Boxer' : None,
+                    'Samurai-Merchant' : None
+                },
+                'player' : [],
             }
             # TODO:
-            # Load images
-
             # Load map
             self.game_state['map'] = self.net.request("map")
             self.game_state['player'] = self.net.request("whoami")
-            
+
+            # Load images
+            x, y = 0, 0
+            images = [ [17,19], [15,19], [14,19], [14,19], [17,19], [17,19] ]
+            for i, img in enumerate(images):
+                images[i] = [x, y, img[0], img[1]]
+                x += img[0]
+            self.tile_set['characters']['Spirit-Boxer'] = spritesheet('./Assets/Spirit-Boxer-Run.png').images_at(images, (0,0,0))
+
+            x, y = 0, 0
+            images = [[37,24], [39,24], [38,24], [38,24], [38,24]]
+            for i, img in enumerate(images):
+                images[i] = [x, y, img[0], img[1]]
+                x += img[0]
+            self.tile_set['characters']['Samurai-Merchant'] = spritesheet('./Assets/Samurai-Merchant-Run.png').images_at(images, (0,0,0))
+
+            self.tile_set['player'] = self.tile_set['characters'][self.game_state['player']]
+
         self.screen.fill((20, 22, 26))
 
+        if self.mode_ticks['game'] % 12 == 0:
+            self.game_state['player-running-tick'] += 1
+
         # Get player position
-        pos = self.net.request("position")
+        # Get all player positions
+        self.game_state['players'] = self.net.request("players")
+        pos = self.game_state['players'][self.game_state['player']]['pos']
         center = [int(pos[0]), int(pos[1])] # The center of the screen will have a synthetic value of 'pos'
         for y in range(len(self.game_state['map'][0])):
             for x in range(len(self.game_state['map'][0][0])):
@@ -397,15 +424,47 @@ class Client:
                 
                 if val != -1:
                     img = pygame.transform.scale(image_pool[val], [TILE_SIZE,TILE_SIZE])
-                    self.screen.blit(img, (x*TILE_SIZE - center[0], y*TILE_SIZE -center[1]))
+                    self.screen.blit(img, (x*TILE_SIZE - center[0] + int(WIDTH/2), y*TILE_SIZE -center[1]+ int(HEIGHT/2)))
                 if val2 != -1:
                     img = pygame.transform.scale(image_pool2[val2], [TILE_SIZE,TILE_SIZE])
-                    self.screen.blit(img, (x*TILE_SIZE - center[0], y*TILE_SIZE -center[1]))
+                    self.screen.blit(img, (x*TILE_SIZE - center[0]+ int(WIDTH/2), y*TILE_SIZE -center[1]+ int(HEIGHT/2)))
 
         # Update player angle
         mx, my = pygame.mouse.get_pos()
         angle = round(math.atan2(my-(HEIGHT/2), mx-(WIDTH/2)),2)
         self.net.push({'angle' : [self.game_state['player'],angle]})
+
+        direction = 'left'
+        if abs(angle) >= 0 and abs(angle) <= 1.57:
+            direction = 'right'
+
+        # Draw player at center of the screen
+        img = self.tile_set['player'][self.game_state['player-running-tick']%len(self.tile_set['player'])]
+        if direction == 'left':
+            img = pygame.transform.flip(img, True, False)
+        img = pygame.transform.scale(img, (img.get_width()*PLAYER_SCALING, img.get_height()*PLAYER_SCALING))
+        self.screen.blit(img, (int(WIDTH/2-img.get_height()/2), int(HEIGHT/2 - img.get_height()/2)))
+
+        # Draw all other player positions
+        for key in self.game_state['players']:
+            if key == self.game_state['player']:
+                continue
+
+            img = self.tile_set['characters'][key][self.game_state['player-running-tick']%len(self.tile_set['characters'][key])]
+            a_angle = self.game_state['players'][key]['angle']
+            direction = 'left'
+            if abs(a_angle) >= 0 and abs(a_angle) <= 1.57:
+                direction = 'right'
+            
+            if direction == 'left':
+                img = pygame.transform.flip(img, True, False)
+            img = pygame.transform.scale(img, (img.get_width()*PLAYER_SCALING, img.get_height()*PLAYER_SCALING))
+            posx, posy = self.game_state['players'][key]['pos']
+            self.screen.blit(img, (int(posx-center[0]+ WIDTH/2 - img.get_width()/2), int(posy-center[1]+ HEIGHT/2 - img.get_height()/2)))
+
+        
+
+        
 
         pygame.display.flip()
         self.mode_ticks['game'] += 1

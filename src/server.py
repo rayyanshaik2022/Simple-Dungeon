@@ -26,8 +26,8 @@ print("Waiting for a connection, Server Started")
 
 
 game = GameState()
-f = r"C:\Users\101pa\Desktop\Advanced Python\Infection-Multiplayer\src\maplayer1.txt"
-f2 = r"C:\Users\101pa\Desktop\Advanced Python\Infection-Multiplayer\src\maplayer2.txt"
+f = r"C:\Users\101pa\Desktop\Advanced Python\Infection-Multiplayer\src\map\maplayer1.txt"
+f2 = r"C:\Users\101pa\Desktop\Advanced Python\Infection-Multiplayer\src\map\maplayer2.txt"
 game.map = [np.loadtxt(f).tolist(), np.loadtxt(f2).tolist()]
 
 def disconect(id_):
@@ -100,6 +100,8 @@ def threaded_client(conn, addr):
                                 reply = game.game_information['players'][key]['pos']
                     else:
                         reply = None
+                elif req == "players":
+                    reply = game.game_information['players']
 
             elif data['action'] == 'try':
                 for key in data['data']:
