@@ -10,7 +10,7 @@ from _thread import *
 server = "192.168.0.4"
 port = 5555
 
-print(f"Attempting to start server on ({server},{port})")
+print(f">  Attempting to start server on ({server},{port})")
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -18,11 +18,11 @@ try:
     s.bind(('', port))
 except socket.error as e:
     print(str(e))
-    print("Server will start on local address")
+    print(">  Server will start on local address")
 
 
 s.listen(2)
-print("Waiting for a connection, Server Started")
+print("   Waiting for a connection, Server Started")
 
 
 game = GameState()
@@ -46,13 +46,11 @@ def threaded_client(conn, addr):
 
     id_ = addr[1]
     conn.send(pickle.dumps(id_))
-    print("sent id")
 
     # If over 6 players connected
     if len(game.lobby['players_connected']) > 6:
-        print("Lost connection")
+        print(f">  Unauthorized connection from {id_}.\n   Removing from lobby")
         disconect(id_)
-        print("Removed",id_,"from the lobby")
         conn.close()
         return
 
@@ -120,9 +118,8 @@ def threaded_client(conn, addr):
         except:
             break
 
-    print("Lost connection")
+    print(f"Lost connection from {id_}. Removing data from lobby")
     disconect(id_)
-    print("Removed",id_,"from the lobby")
     conn.close()
 
 def update_grid():
@@ -141,7 +138,7 @@ def update_grid():
 start_new_thread(update_grid, ())
 while True:
     conn, addr = s.accept()
-    print("Connection from:",addr)
+    print(">  Connection from:",addr)
     
     start_new_thread(threaded_client, (conn,addr,))
     game.lobby['players_connected'][str(addr[1])] = {}

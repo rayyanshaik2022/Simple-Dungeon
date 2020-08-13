@@ -46,7 +46,7 @@ class Client:
         quit()
 
     def update(self):
-        pygame.display.set_caption(f"Virus | {self.clock.get_fps()}")
+        pygame.display.set_caption(f"Virus | {round(self.clock.get_fps(),2)}")
         pass
 
     def draw(self):

@@ -39,7 +39,8 @@ class GameState:
     def update(self):
 
         if self.c_state == -1:
-            print("RESETTING SERVER")
+            print(">  All players have disconnected.")
+            print("   Resetting server.")
             self.game_information = None
             self.c_state = 0
 
@@ -84,6 +85,12 @@ class GameState:
                     }
                 }
 
+            block_tiles = [0,3,1,4,10,5,8,9]
+            for i in range(100,400,100):
+                for item in block_tiles:
+                    if item not in block_tiles:
+                        block_tiles.append(item*i)
+
             for char in self.game_information['players']:
                 character = self.game_information['players'][char]
                 # Move character
@@ -91,25 +98,23 @@ class GameState:
                 f_y = character['pos'][1] + math.sin(character['angle']) * character['speed']
 
                 # Check if character is out of bounds
-                feet_pos = [int(f_x/TILE_SIZE), int((f_y + character['size'][1]/2)/TILE_SIZE)]
-                old_feet_pos = [int(character['pos'][0]/TILE_SIZE), int((character['pos'][1] + character['size'][1]/2)/TILE_SIZE)]
-                if (feet_pos[0] >= 0 and feet_pos[0] < len(self.map[0][0])) and (feet_pos[1] >= 0 and feet_pos[1] < len(self.map[0])):
-                    
-                    block_tiles = [0,3,1,4,10,5,8,9]
-                    for i in range(100,400,100):
-                        for item in block_tiles:
-                            if item not in block_tiles:
-                                block_tiles.append(item*i)
+                #Checking by foot(for y axis)
+                c_pos = [int(f_x/TILE_SIZE), int(f_y/TILE_SIZE)]
+                old_c_pos = [int(character['pos'][0]/TILE_SIZE), int((character['pos'][1])/TILE_SIZE)]
+                if character['angle'] > 0 and character['angle'] < 3.14: # If mouse pos/angle is downwards
+                    c_pos = [int(f_x/TILE_SIZE), int((f_y + character['size'][1]/2)/TILE_SIZE)]
+                    old_c_pos = [int(character['pos'][0]/TILE_SIZE), int((character['pos'][1] + character['size'][1]/2)/TILE_SIZE)]
 
-                    if self.map[0][feet_pos[1]][feet_pos[0]] in block_tiles:
+                if (c_pos[0] >= 0 and c_pos[0] < len(self.map[0][0])) and (c_pos[1] >= 0 and c_pos[1] < len(self.map[0])):
 
-                        if self.map[0][old_feet_pos[1]][feet_pos[0]] not in block_tiles:
+                    if self.map[0][c_pos[1]][c_pos[0]] in block_tiles:
+
+                        if self.map[0][old_c_pos[1]][c_pos[0]] not in block_tiles:
                             character['pos'] = [f_x, character['pos'][1]]
-                        elif self.map[0][feet_pos[1]][old_feet_pos[0]] not in block_tiles:
+                        elif self.map[0][c_pos[1]][old_c_pos[0]] not in block_tiles:
                             character['pos'] = [character['pos'][0], f_y]
                         else:
-                            # TODO: FIX CORNER UPDATES
-                            character['pos'] = [old_feet_pos[0]*TILE_SIZE, old_feet_pos[1]*TILE_SIZE]
+                            character['pos'] = character['pos']
                     else:
                         character['pos'] = [f_x, f_y]
                 else:
